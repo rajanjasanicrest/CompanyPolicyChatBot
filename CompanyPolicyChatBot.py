@@ -6,9 +6,11 @@ from langchain.document_loaders.csv_loader import CSVLoader
 from langchain_community.vectorstores import FAISS
 import tempfile
 from langchain_community.document_loaders import PyPDFLoader
+from langchain_core.output_parsers import StrOutputParser
 import openai
 import os
-
+import time
+import random
 
 openai.api_key = os.getenv("OPENAI_API_KEY")
 loader = PyPDFLoader("company_policy.pdf")
@@ -22,8 +24,8 @@ embeddings = OpenAIEmbeddings()
 vectorstore = FAISS.from_documents(data, embeddings)
 
 chain = ConversationalRetrievalChain.from_llm(
-    llm = ChatOpenAI(temperature=0.0,model_name='gpt-3.5-turbo'),
-    retriever = vectorstore.as_retriever()
+    llm = ChatOpenAI(temperature=0.0,model='gpt-3.5-turbo'),
+    retriever = vectorstore.as_retriever(),
 )
 
 
@@ -34,11 +36,22 @@ def conversational_chat(query):
 
     st.session_state['history'].append((query, result["answer"]))
     
-    for word in result.split():
+    for word in result["answer"].split():
         yield word + " "
         time.sleep(0.05)
 
 
+def gen_initial():
+    response = random.choice(
+        [
+            "Hello there! How can I assist you today?",
+            "Hi, human! Is there anything I can help you with?",
+            "Do you need help?",
+        ]
+    )
+    for word in response.split():
+        yield word + " "
+        time.sleep(0.05)
 
 if 'history' not in st.session_state:
     st.session_state['history'] = []
@@ -48,29 +61,25 @@ if 'generated' not in st.session_state:
 
 if 'past' not in st.session_state:
     st.session_state['past'] = ["Hey ! 👋"]
+
     
-#container for the chat history
-response_container = st.container()
-#container for the user's text input
-container = st.container()
+if user_input := st.chat_input("Ask me anything about company policy"):
+    
+    # Display user message in chat message container
+    with st.chat_message("user"):
+        st.markdown(user_input)
+    # Add user message to chat history
+    st.session_state['past'].append({"role": "user", "content": user_input})
 
-with container:
-    with st.form(key='my_form', clear_on_submit=True):
-        
-        user_input = st.text_input("Query:", placeholder="Ask me anything about company policy (:", key='input')
-        submit_button = st.form_submit_button(label='Send')
-        
-    if submit_button and user_input:
-        output = st.write_stream(conversational_chat(user_input))
-        
-        st.session_state['past'].append(user_input)
-        st.session_state['generated'].append(output)
+    # Display assistant response in chat message container
+    with st.chat_message("assistant"):
+        response = st.write_stream(conversational_chat(user_input))
 
-if st.session_state['generated']:
-    with response_container:
-        for i in range(len(st.session_state['generated'])):
-            message(st.session_state["past"][i], is_user=True, key=str(i) + '_user', avatar_style="big-smile")
-            message(st.session_state["generated"][i], key=str(i), avatar_style="thumbs")
-
-
-
+    st.session_state['past'].append(user_input)
+    st.session_state['generated'].append(response)
+    # Add assistant response to chat history
+    st.session_state['generated'].append({"role": "assistant", "content": response})
+else:
+    with st.chat_message('assistant'):
+        start_message = st.write_stream(gen_initial())
+    st.session_state['generated'].append({'role':'assistant', "content": start_message})
