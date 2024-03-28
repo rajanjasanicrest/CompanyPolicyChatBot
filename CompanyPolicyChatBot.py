@@ -34,7 +34,9 @@ def conversational_chat(query):
 
     st.session_state['history'].append((query, result["answer"]))
     
-    return result["answer"]
+    for word in result.split():
+        yield word + " "
+        time.sleep(0.05)
 
 
 
@@ -59,7 +61,7 @@ with container:
         submit_button = st.form_submit_button(label='Send')
         
     if submit_button and user_input:
-        output = conversational_chat(user_input)
+        output = st.write_stream(conversational_chat(user_input))
         
         st.session_state['past'].append(user_input)
         st.session_state['generated'].append(output)
