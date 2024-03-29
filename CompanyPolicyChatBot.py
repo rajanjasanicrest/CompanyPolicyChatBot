@@ -12,7 +12,7 @@ import os
 import time
 import random
 
-openai.api_key = "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"
+openai.api_key = os.getenv('OPENAI_API_KEY)')
 loader = PyPDFLoader("company_policy.pdf")
 data = loader.load()
 
