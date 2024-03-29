@@ -41,45 +41,43 @@ def conversational_chat(query):
         time.sleep(0.05)
 
 
-def gen_initial():
-    response = random.choice(
-        [
-            "Hello there! How can I assist you today?",
-            "Hi, human! Is there anything I can help you with?",
-            "Do you need help?",
-        ]
-    )
-    for word in response.split():
-        yield word + " "
-        time.sleep(0.05)
+
+response = random.choice(
+    [
+        "Hello there! How can I assist you today?",
+        "Hi, human! Is there anything I can help you with?",
+        "Do you need help?",
+    ]
+)
 
 if 'history' not in st.session_state:
     st.session_state['history'] = []
 
 if 'generated' not in st.session_state:
-    st.session_state['generated'] = ["Hello ! Ask me anything about Company Policy 🤗"]
+    st.session_state['generated'] = [response]
 
 if 'past' not in st.session_state:
-    st.session_state['past'] = ["Hey ! 👋"]
+    st.session_state['past'] = [""]
 
-    
+for i in range(len(st.session_state['generated'])):
+    if i != 0:
+        with st.chat_message('user'):
+            st.markdown(st.session_state['past'][i])
+        with st.chat_message('assistant'):
+            st.markdown(st.session_state['generated'][i])
+    else:
+        with st.chat_message('assistant'):
+            st.markdown(st.session_state['generated'][i])
+
+
 if user_input := st.chat_input("Ask me anything about company policy"):
-    
     # Display user message in chat message container
     with st.chat_message("user"):
         st.markdown(user_input)
-    # Add user message to chat history
-    st.session_state['past'].append({"role": "user", "content": user_input})
-
     # Display assistant response in chat message container
     with st.chat_message("assistant"):
         response = st.write_stream(conversational_chat(user_input))
 
     st.session_state['past'].append(user_input)
     st.session_state['generated'].append(response)
-    # Add assistant response to chat history
-    st.session_state['generated'].append({"role": "assistant", "content": response})
-else:
-    with st.chat_message('assistant'):
-        start_message = st.write_stream(gen_initial())
-    st.session_state['generated'].append({'role':'assistant', "content": start_message})
+    
