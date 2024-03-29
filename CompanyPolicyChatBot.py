@@ -20,7 +20,7 @@ st.title('Policy Chatbot')
 
 # st.write(data)
 
-embeddings = OpenAIEmbeddings(model="text-embedding-3-large")
+embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
 vectorstore = FAISS.from_documents(data, embeddings)
 
 chain = ConversationalRetrievalChain.from_llm(
